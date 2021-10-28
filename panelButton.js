@@ -63,18 +63,29 @@ var SpTrayButton = GObject.registerClass(
         _initUi() {
             const box = new St.BoxLayout({ style_class: 'panel-status-menu-box' });
             // the 'text' variable below is what's actually shown on the tray
+	    let panelLogoText = new St.Label({
+		style_class: "taskbarLogoText",
+		text: "",
+		y_align: Clutter.ActorAlign.CENTER
+	    });
             let panelButtonText = new St.Label({
                 style_class: "taskbarPanelText",
                 text: this.settings.get_string('starting'),
                 y_align: Clutter.ActorAlign.CENTER
             });
 
+	    this.ui.set(
+		'logo',
+		panelLogoText,
+	    );
             this.ui.set(
                 'label',
                 panelButtonText,
             );
 
-            this.ui.forEach(element => box.add_child(element));
+	    box.add_child(this.ui.get('logo'));
+	    box.add_child(this.ui.get('label'));
+
             this.ui.set('box', box);
 
             // listen to spotify status changes to update the tray display immediately. no busy waiting
@@ -119,19 +130,21 @@ var SpTrayButton = GObject.registerClass(
                 if (hidden) {
                     this.visible = false;
                 } else {
-                    button.set_text(this.settings.get_string("off"));
+		    button.set_text("nothing is playing");	
+                    //button.set_text(this.settings.get_string("off"));
                 }
             } else {
                 let metadata = this.spotifyProxy.Metadata;
 
-                if (status == "Paused") {
-                    let hidden = this.settings.get_boolean("hidden-when-paused");
-                    if (hidden) {
-                        this.visible = false;
-                    } else {
-                        button.set_text(this.settings.get_string("paused"));
-                    }
-                } else {
+                //if (status == "Paused") {
+                    //let hidden = this.settings.get_boolean("hidden-when-paused");
+                    //if (hidden) {
+                    //    this.visible = false;
+                    //} else {
+			//button.set_text("not playing");    
+                        //button.set_text(this.settings.get_string("paused"));
+                    //}
+                //} else {
                     if (!this.visible) {
                         this.visible = true;
                     }
@@ -143,7 +156,7 @@ var SpTrayButton = GObject.registerClass(
 
                     let output = displayFormat.replace("{artist}", artist).replace("{track}", title).replace("{album}", album);
                     button.set_text(output);
-                }
+                //}
             }
             return true;
         }
