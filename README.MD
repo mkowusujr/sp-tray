@@ -2,7 +2,7 @@
 # sp-tray
 
 sp-tray is GNOME Shell extension that displays current track information in the system tray using Spotify's dbus interface without using the web API. Like this: 
-![tray](https://raw.githubusercontent.com/esenliyim/sp-tray/multi-gtk/example.png)
+![Example png](/example.png)
 
 ## Features
 
@@ -16,7 +16,6 @@ sp-tray is GNOME Shell extension that displays current track information in the 
 
 Preferably, you should:
 
-![Example png](/example.png)
 
 Alternatively, you could:
 
