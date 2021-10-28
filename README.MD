@@ -16,8 +16,7 @@ sp-tray is GNOME Shell extension that displays current track information in the 
 
 Preferably, you should:
 
-[<img src="https://raw.githubusercontent.com/andyholmes/gnome-shell-extensions-badge/master/get-it-on-ego.svg?sanitize=true" alt="Get it on GNOME Extensions" height="100" align="middle">][extlink]
-
+![Example png](/example.png)
 
 Alternatively, you could:
 
