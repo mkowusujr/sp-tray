@@ -56,36 +56,40 @@ var SpTrayButton = GObject.registerClass(
             this._settingSignals.push(this.settings.connect(`changed::paused`, this.updateText.bind(this)));
             this._settingSignals.push(this.settings.connect(`changed::off`, this.updateText.bind(this)));
             this._settingSignals.push(this.settings.connect(`changed::hidden-when-inactive`, this.updateText.bind(this)));
+            this._settingSignals.push(this.settings.connect(`changed::hidden-when-paused`, this.updateText.bind(this)));
             this._settingSignals.push(this.settings.connect(`changed::display-format`, this.updateText.bind(this)));
+            this._settingSignals.push(this.settings.connect(`changed::podcast-format`, this.updateText.bind(this)));
+            this._settingSignals.push(this.settings.connect(`changed::title-max-length`, this.updateText.bind(this)));
+            this._settingSignals.push(this.settings.connect(`changed::artist-max-length`, this.updateText.bind(this)));
+            this._settingSignals.push(this.settings.connect(`changed::album-max-length`, this.updateText.bind(this)));
             this._settingSignals.push(this.settings.connect('changed::position', this._positionChanged.bind(this)));
         }
 
         _initUi() {
             const box = new St.BoxLayout({ style_class: 'panel-status-menu-box' });
             // the 'text' variable below is what's actually shown on the tray
-	    let panelLogoText = new St.Label({
-		style_class: "taskbarLogoText",
-		text: "",
-		y_align: Clutter.ActorAlign.CENTER
-	    });
+            // Display Spotify Logo
+            let panelLogoText = new St.Label({
+                style_class: "taskbarLogoText",
+                text: "",
+                y_align: Clutter.ActorAlign.CENTER
+                });
             let panelButtonText = new St.Label({
                 style_class: "taskbarPanelText",
                 text: this.settings.get_string('starting'),
                 y_align: Clutter.ActorAlign.CENTER
             });
-
-	    this.ui.set(
-		'logo',
-		panelLogoText,
-	    );
+            
+            this.ui.set(
+                'logo',
+                panelLogoText,
+            );
             this.ui.set(
                 'label',
                 panelButtonText,
             );
 
-	    box.add_child(this.ui.get('logo'));
-	    box.add_child(this.ui.get('label'));
-
+            this.ui.forEach(element => box.add_child(element));
             this.ui.set('box', box);
 
             // listen to spotify status changes to update the tray display immediately. no busy waiting
@@ -124,38 +128,80 @@ var SpTrayButton = GObject.registerClass(
         updateText() {
             let button = this.ui.get('label');
             let status = this.spotifyProxy.PlaybackStatus;
-
-            if (typeof (status) !== 'string') {
-                let hidden = this.settings.get_boolean("hidden-when-inactive");
-                if (hidden) {
-                    this.visible = false;
+            button.set_text(" nothing is playing");
+            if (!status) { // spotify is inactive
+                if (this.settings.get_boolean("hidden-when-inactive")) {
+                    if (this.visible) {
+                        this.visible = true;
+                    }
                 } else {
-		    button.set_text("nothing is playing");	
-                    //button.set_text(this.settings.get_string("off"));
-                }
-            } else {
-                let metadata = this.spotifyProxy.Metadata;
-
-                //if (status == "Paused") {
-                    //let hidden = this.settings.get_boolean("hidden-when-paused");
-                    //if (hidden) {
-                    //    this.visible = false;
-                    //} else {
-			//button.set_text("not playing");    
-                        //button.set_text(this.settings.get_string("paused"));
-                    //}
-                //} else {
                     if (!this.visible) {
                         this.visible = true;
                     }
-                    let displayFormat = this.settings.get_string("display-format");
+                    button.set_text(" nothing is playing");
+                }
+            } else { //spotify is active and returning dbus thingamajigs
+                let metadata = this.spotifyProxy.Metadata;
+
+                /*if (status == "Paused") {
+                    let hidden = this.settings.get_boolean("hidden-when-paused");
+                    if (hidden) {
+                        if (this.visible) {
+                            this.visible = false;
+                        }
+                    } else /*{
+                        if (!this.visible) {
+                            this.visible = true;
+                        }
+                        button.set_text(this.settings.get_string("paused"));
+                    }*/
+                //} else {
+                    // thanks benjamingwynn for this
+                    // check if spotify is actually running and the metadata is "correct"
+                    if (!metadata || !this.isReallySpotify(metadata)) {
+                        this.visible = false;
+                        return true;
+                    }
+                    if (!this.visible) {
+                        this.visible = true;
+                    }
+
+                    let maxTitleLength = this.settings.get_int("title-max-length");
+                    let maxArtistLength = this.settings.get_int("artist-max-length");
+                    let maxAlbumLength = this.settings.get_int("album-max-length");
+
+                    let trackType = this._getTrackType(metadata['mpris:trackid'].get_string()[0]);
+                    let format = trackType == "track"
+                        ? this.settings.get_string("display-format")
+                        : this.settings.get_string("podcast-format");
 
                     let title = metadata['xesam:title'].get_string()[0];
+                    if (title.length > maxTitleLength) {
+                    	title = title.slice(0,maxTitleLength) + "...";
+                    }
+                    
                     let album = metadata['xesam:album'].get_string()[0];
+                    if (album.length > maxAlbumLength) {
+                    	album = album.slice(0,maxAlbumLength) + "...";
+                    }
+                    	
                     let artist = metadata['xesam:albumArtist'].get_strv()[0];
+                    if (artist.length > maxArtistLength) {
+                    	artist = artist.slice(0,maxArtistLength) + "...";
+                    }
 
-                    let output = displayFormat.replace("{artist}", artist).replace("{track}", title).replace("{album}", album);
-                    button.set_text(output);
+                    let output = "";
+                    if (trackType == "track") { // it's a song
+                        output = format.replace("{artist}", artist).replace("{track}", title).replace("{album}", album);
+                    } else if(trackType == "episode") { // it's a podcast
+                        output = format.replace("{track}", title).replace("{album}", album);
+                    } else {
+                        log("unknown track type");
+                        this.visible = false;
+                        return true;
+                    }
+
+                    button.set_text(" " + output);
                 //}
             }
             return true;
@@ -185,6 +231,21 @@ var SpTrayButton = GObject.registerClass(
                 }
                 Main.activateWindow(this._spotiWin); // pull up the spotify window
             }
+        }
+
+        isReallySpotify(metadata) {
+            if (metadata['mpris:trackid']) {
+                let trackId = metadata['mpris:trackid'].get_string()[0];
+                return trackId.startsWith("spotify:")
+            } else {
+                log("this isn't spotify!?")
+                return false;
+            }
+        }
+
+        _getTrackType(trackid) {
+            let first = trackid.indexOf(":");
+            return trackid.substring(first + 1, trackid.indexOf(":", first + 1));
         }
     }
 )

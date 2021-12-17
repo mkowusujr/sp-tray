@@ -14,15 +14,21 @@ GNU General Public License for more details.
 along with this program.If not, see < http://www.gnu.org/licenses/>. */
 
 .taskbarLogoText{
+    /*
+    green
     color: rgb(128, 178, 104);
+    */
+    color: rgb(253,180,180);
     font-size: 2.15em;
     height: 27.5px;
 }
 
 .taskbarPanelText{
-    /*color: rgb(255, 255, 255);*/
-    /*color: rgb(30, 215, 96);*//*spotify green*/
+    /*
+    green
     color: rgb(128, 178, 104);
+    */
+    color: rgb(253,180,180);
 }
 
 .cancelButton{
